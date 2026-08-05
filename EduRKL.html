@@ -1,0 +1,2815 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EduRKL — Gestão de Materiais Escolares</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+
+/* ============================================================
+   VARIÁVEIS — DIA (padrão) e NOITE
+   ============================================================ */
+:root {
+  /* Dia: azul claro */
+  --bg:            #dbeafe;
+  --bg-deep:       #bfdbfe;
+  --surface:       rgba(255,255,255,0.92);
+  --surface-2:     rgba(255,255,255,0.70);
+  --border:        rgba(147,197,253,0.45);
+  --border-strong: rgba(59,130,246,0.30);
+  --text-h:        #0c2340;
+  --text-b:        #1e3a5f;
+  --text-m:        #5a7fa8;
+  --accent:        #2563eb;
+  --accent-2:      #3b82f6;
+  --accent-lt:     rgba(37,99,235,0.10);
+  --success:       #16a34a;
+  --success-lt:    rgba(22,163,74,0.10);
+  --warn:          #d97706;
+  --warn-lt:       rgba(217,119,6,0.10);
+  --danger:        #dc2626;
+  --danger-lt:     rgba(220,38,38,0.10);
+  --shadow-sm:     0 1px 4px rgba(15,50,100,0.07);
+  --shadow-md:     0 4px 18px rgba(15,50,100,0.10);
+  --shadow-lg:     0 10px 40px rgba(15,50,100,0.13);
+  --glow:          0 0 0 3px rgba(59,130,246,0.15);
+  --topbar:        rgba(255,255,255,0.88);
+}
+
+body.night {
+  /* Noite: azul escuro profundo */
+  --bg:            #020d1f;
+  --bg-deep:       #040f26;
+  --surface:       rgba(4,18,48,0.90);
+  --surface-2:     rgba(6,22,58,0.70);
+  --border:        rgba(29,64,175,0.28);
+  --border-strong: rgba(59,130,246,0.22);
+  --text-h:        #e8f2ff;
+  --text-b:        #b8d4f5;
+  --text-m:        #5080b0;
+  --accent:        #3b82f6;
+  --accent-2:      #60a5fa;
+  --accent-lt:     rgba(59,130,246,0.12);
+  --success:       #22c55e;
+  --success-lt:    rgba(34,197,94,0.10);
+  --warn:          #f59e0b;
+  --warn-lt:       rgba(245,158,11,0.10);
+  --danger:        #ef4444;
+  --danger-lt:     rgba(239,68,68,0.10);
+  --shadow-sm:     0 1px 4px rgba(0,0,0,0.35);
+  --shadow-md:     0 4px 18px rgba(0,0,0,0.45);
+  --shadow-lg:     0 10px 40px rgba(0,0,0,0.55);
+  --glow:          0 0 0 3px rgba(59,130,246,0.18);
+  --topbar:        rgba(3,12,32,0.92);
+}
+
+/* ============================================================
+   BASE
+   ============================================================ */
+*,*::before,*::after { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  font-family: 'Inter', sans-serif;
+  background: var(--bg);
+  color: var(--text-b);
+  min-height: 100vh;
+  overflow-x: hidden;
+  transition: background 0.6s ease, color 0.4s ease;
+}
+
+/* ============================================================
+   PÁGINAS (navegação entre "telas" separadas)
+   ============================================================ */
+.page { display:none; min-height:100vh; }
+.page.active { display:block; animation: pgIn 0.45s ease both; }
+
+@keyframes pgIn {
+  from { opacity:0; transform:translateY(12px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+
+/* ============================================================
+   TOGGLE DIA / NOITE
+   ============================================================ */
+.theme-btn {
+  position: fixed;
+  bottom: 18px;
+  right: 18px;
+  z-index: 9999;
+  width: 44px;
+  height: 44px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-sm);
+  transition: background 0.4s, border-color 0.4s, box-shadow 0.2s;
+  font-size: 18px;
+  user-select: none;
+}
+.theme-btn:hover { box-shadow: var(--shadow-md); }
+.icon-day  { display:block; }
+.icon-night{ display:none;  }
+body.night .icon-day   { display:none;  }
+body.night .icon-night { display:block; }
+
+/* ============================================================
+   TOAST
+   ============================================================ */
+#toast-wrap {
+  position: fixed;
+  top: 76px;
+  right: 20px;
+  z-index: 9000;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+.toast {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 18px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-b);
+  box-shadow: var(--shadow-md);
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  max-width: 320px;
+  animation: toastIn 0.35s ease both;
+  pointer-events: auto;
+}
+.toast.ok   { border-left: 3px solid var(--success); }
+.toast.err  { border-left: 3px solid var(--danger);  }
+.toast.warn { border-left: 3px solid var(--warn);    }
+@keyframes toastIn {
+  from { opacity:0; transform:translateX(16px); }
+  to   { opacity:1; transform:translateX(0);    }
+}
+
+/* ============================================================
+   ██████  PÁGINA 1 — PROPAGANDA / LANDING
+   ============================================================ */
+#page-land {
+  background: var(--bg);
+  display: none;
+  flex-direction: column;
+}
+#page-land.active { display: flex; }
+
+/* HERO */
+.land-hero {
+  padding: 100px 2rem 80px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.land-hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 70% 55% at 50% 30%,
+    rgba(147,197,253,0.40) 0%,
+    transparent 80%);
+  pointer-events: none;
+  transition: background 0.6s;
+}
+body.night .land-hero::before {
+  background: radial-gradient(ellipse 70% 55% at 50% 30%,
+    rgba(29,64,175,0.22) 0%,
+    transparent 80%);
+}
+
+.land-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 14px;
+  background: var(--accent-lt);
+  border: 1px solid var(--border-strong);
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-bottom: 28px;
+}
+
+.land-title {
+  font-family: 'Sora', sans-serif;
+  font-size: clamp(36px, 6vw, 68px);
+  font-weight: 800;
+  color: var(--text-h);
+  line-height: 1.1;
+  letter-spacing: -1.5px;
+  margin-bottom: 22px;
+  max-width: 820px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.land-title span {
+  color: var(--accent);
+}
+
+/* Efeito brilhante no título */
+.shine-text {
+  position: relative;
+  display: inline-block;
+  background: linear-gradient(
+    105deg,
+    #1d4ed8 0%,
+    #3b82f6 30%,
+    #93c5fd 48%,
+    #ffffff 52%,
+    #93c5fd 56%,
+    #3b82f6 70%,
+    #1d4ed8 100%
+  );
+  background-size: 250% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shineMove 3.5s linear infinite;
+  filter: drop-shadow(0 0 18px rgba(96,165,250,0.45));
+}
+body.night .shine-text {
+  background: linear-gradient(
+    105deg,
+    #2563eb 0%,
+    #60a5fa 28%,
+    #bfdbfe 48%,
+    #ffffff 52%,
+    #bfdbfe 56%,
+    #60a5fa 72%,
+    #2563eb 100%
+  );
+  background-size: 250% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shineMove 3.5s linear infinite;
+  filter: drop-shadow(0 0 22px rgba(147,197,253,0.55));
+}
+@keyframes shineMove {
+  0%   { background-position: 200% center; }
+  100% { background-position: -50% center; }
+}
+
+.land-sub {
+  font-size: 17px;
+  color: var(--text-m);
+  max-width: 560px;
+  margin: 0 auto 44px;
+  line-height: 1.7;
+  font-weight: 400;
+}
+
+.land-cta-row {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.btn-cta {
+  padding: 14px 32px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-family: 'Sora', sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s, box-shadow 0.2s, transform 0.15s;
+  box-shadow: 0 4px 16px rgba(37,99,235,0.30);
+  letter-spacing: 0.01em;
+}
+.btn-cta:hover {
+  background: #1d4ed8;
+  box-shadow: 0 6px 24px rgba(37,99,235,0.40);
+  transform: translateY(-1px);
+}
+.btn-cta.outline {
+  background: transparent;
+  color: var(--accent);
+  border: 1.5px solid var(--border-strong);
+  box-shadow: none;
+}
+.btn-cta.outline:hover {
+  background: var(--accent-lt);
+  box-shadow: none;
+  transform: none;
+}
+
+/* STATS STRIP */
+.land-stats {
+  display: flex;
+  justify-content: center;
+  gap: 3rem;
+  flex-wrap: wrap;
+  padding: 48px 2rem;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  margin: 60px 0 0;
+}
+.land-stat {
+  text-align: center;
+}
+.land-stat-num {
+  font-family: 'Sora', sans-serif;
+  font-size: 36px;
+  font-weight: 800;
+  color: var(--accent);
+  letter-spacing: -1px;
+}
+.land-stat-lbl {
+  font-size: 13px;
+  color: var(--text-m);
+  margin-top: 4px;
+  font-weight: 500;
+}
+
+/* FEATURES */
+.land-features {
+  padding: 72px 2rem;
+  max-width: 1080px;
+  margin: 0 auto;
+}
+.land-section-label {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 14px;
+}
+.land-section-title {
+  font-family: 'Sora', sans-serif;
+  font-size: clamp(26px, 3.5vw, 38px);
+  font-weight: 700;
+  color: var(--text-h);
+  letter-spacing: -0.5px;
+  margin-bottom: 48px;
+  max-width: 520px;
+}
+
+.feat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+}
+.feat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 28px;
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.25s, border-color 0.25s, transform 0.2s, background 0.4s;
+}
+.feat-card:hover {
+  box-shadow: var(--shadow-md);
+  border-color: var(--border-strong);
+  transform: translateY(-2px);
+}
+.feat-icon {
+  width: 44px; height: 44px;
+  background: var(--accent-lt);
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 18px;
+}
+.feat-icon svg { width:22px; height:22px; color: var(--accent); }
+.feat-title {
+  font-family: 'Sora', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-h);
+  margin-bottom: 8px;
+}
+.feat-desc {
+  font-size: 14px;
+  color: var(--text-m);
+  line-height: 1.65;
+}
+
+/* COMO FUNCIONA */
+.land-how {
+  padding: 72px 2rem;
+  background: var(--surface-2);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  transition: background 0.6s;
+}
+.land-how-inner {
+  max-width: 900px;
+  margin: 0 auto;
+}
+.steps-row {
+  display: flex;
+  gap: 0;
+  flex-wrap: wrap;
+  margin-top: 40px;
+  position: relative;
+}
+.steps-row::before {
+  content: '';
+  position: absolute;
+  top: 24px;
+  left: 24px;
+  right: 24px;
+  height: 1px;
+  background: var(--border);
+  z-index: 0;
+}
+.step {
+  flex: 1;
+  min-width: 200px;
+  text-align: center;
+  padding: 0 20px;
+  position: relative;
+  z-index: 1;
+}
+.step-num {
+  width: 48px; height: 48px;
+  background: var(--surface);
+  border: 1.5px solid var(--border-strong);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 16px;
+  font-family: 'Sora', sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--accent);
+  box-shadow: var(--shadow-sm);
+}
+.step-title {
+  font-family: 'Sora', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-h);
+  margin-bottom: 6px;
+}
+.step-desc {
+  font-size: 13px;
+  color: var(--text-m);
+  line-height: 1.6;
+}
+
+/* FOOTER LAND */
+.land-footer {
+  padding: 40px 2rem;
+  text-align: center;
+}
+.land-footer-logo {
+  font-family: 'Sora', sans-serif;
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--text-h);
+  letter-spacing: -0.5px;
+  margin-bottom: 10px;
+}
+.land-footer-sub {
+  font-size: 13px;
+  color: var(--text-m);
+  margin-bottom: 24px;
+}
+.land-footer-links {
+  display: flex;
+  gap: 24px;
+  justify-content: center;
+  font-size: 13px;
+  color: var(--text-m);
+}
+.land-footer-links span { cursor: pointer; transition: color 0.2s; }
+.land-footer-links span:hover { color: var(--accent); }
+
+/* NAV LAND */
+.land-nav {
+  position: sticky;
+  top: 0;
+  z-index: 800;
+  background: var(--topbar);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 2rem;
+  height: 62px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: background 0.5s, border-color 0.4s;
+}
+.land-nav-logo {
+  font-family: 'Sora', sans-serif;
+  font-size: 19px;
+  font-weight: 800;
+  color: var(--text-h);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  letter-spacing: -0.4px;
+}
+.land-nav-logo-icon {
+  width: 34px; height: 34px;
+  background: var(--accent);
+  border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 3px 10px rgba(37,99,235,0.25);
+}
+.land-nav-logo-icon svg { width:18px; height:18px; fill:white; }
+.land-nav-right { display:flex; align-items:center; gap:12px; }
+.land-nav-link {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-m);
+  cursor: pointer;
+  transition: color 0.2s;
+}
+.land-nav-link:hover { color: var(--accent); }
+.btn-nav {
+  padding: 9px 22px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-family: 'Sora', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s, box-shadow 0.2s;
+  box-shadow: 0 3px 10px rgba(37,99,235,0.25);
+}
+.btn-nav:hover { background: #1d4ed8; }
+
+/* ============================================================
+   ██████  PÁGINA 2 — LOGIN
+   ============================================================ */
+#page-login {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 2rem;
+  background: var(--bg);
+  position: relative;
+}
+#page-login.active { display: flex; }
+
+#page-login::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 60% 60% at 50% 30%,
+    rgba(147,197,253,0.35) 0%, transparent 80%);
+  pointer-events: none;
+  transition: background 0.6s;
+}
+body.night #page-login::before {
+  background: radial-gradient(ellipse 60% 60% at 50% 30%,
+    rgba(29,64,175,0.18) 0%, transparent 80%);
+}
+
+.login-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 3rem 3.5rem;
+  width: 100%;
+  max-width: 460px;
+  box-shadow: var(--shadow-lg);
+  position: relative;
+  z-index: 1;
+  transition: background 0.5s, border-color 0.4s;
+}
+.login-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  border-radius: 20px 20px 0 0;
+  opacity: 0.6;
+}
+
+.login-logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 2.5rem;
+}
+.login-logo-icon {
+  width: 46px; height: 46px;
+  background: var(--accent);
+  border-radius: 13px;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 14px rgba(37,99,235,0.28);
+}
+.login-logo-icon svg { width:24px; height:24px; fill:white; }
+.login-logo-text h1 {
+  font-family: 'Sora', sans-serif;
+  font-size: 21px;
+  font-weight: 800;
+  color: var(--text-h);
+  letter-spacing: -0.5px;
+  line-height: 1;
+}
+.login-logo-text p {
+  font-size: 12px;
+  color: var(--text-m);
+  margin-top: 3px;
+}
+
+.login-h {
+  font-family: 'Sora', sans-serif;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-h);
+  margin-bottom: 5px;
+  letter-spacing: -0.3px;
+}
+.login-sub {
+  font-size: 14px;
+  color: var(--text-m);
+  margin-bottom: 1.75rem;
+}
+
+/* Tab selector */
+.role-tabs {
+  display: flex;
+  background: var(--bg-deep);
+  border-radius: 11px;
+  padding: 4px;
+  margin-bottom: 1.75rem;
+  gap: 3px;
+  border: 1px solid var(--border);
+  transition: background 0.5s, border-color 0.4s;
+}
+.role-tab {
+  flex: 1;
+  padding: 10px;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-m);
+  cursor: pointer;
+  transition: all 0.25s;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+}
+.role-tab svg { width:15px; height:15px; transition: transform 0.25s; }
+.role-tab.on {
+  background: var(--surface);
+  color: var(--accent);
+  box-shadow: var(--shadow-sm), var(--glow);
+  transform: translateY(-1px);
+}
+.role-tab.on svg { transform: scale(1.08); }
+
+.fg { margin-bottom: 1.2rem; }
+.fl {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-b);
+  margin-bottom: 6px;
+  letter-spacing: 0.01em;
+}
+.fi {
+  width: 100%;
+  padding: 12px 15px;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  color: var(--text-h);
+  background: var(--surface);
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s, background 0.5s, color 0.4s;
+}
+.fi:focus {
+  border-color: var(--accent);
+  box-shadow: var(--glow);
+}
+.fi::placeholder { color: var(--text-m); opacity: 0.5; }
+
+.fi-pass-wrap { position: relative; }
+.fi-pass-wrap .fi { padding-right: 44px; }
+.fi-eye {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  transform: translateY(-50%);
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-m);
+  border-radius: 6px;
+  transition: color 0.2s, background 0.2s;
+}
+.fi-eye:hover { color: var(--accent); background: var(--accent-lt); }
+.fi-eye svg { width: 18px; height: 18px; }
+.fi-eye .eye-off { display: none; }
+.fi-eye.on .eye-on { display: none; }
+.fi-eye.on .eye-off { display: block; }
+
+.hint-box {
+  font-size: 12px;
+  color: var(--text-m);
+  padding: 11px 15px;
+  background: var(--accent-lt);
+  border-radius: 9px;
+  border-left: 3px solid var(--border-strong);
+  line-height: 1.65;
+  margin-top: 0.75rem;
+  transition: background 0.5s;
+}
+
+.err-box {
+  font-size: 13px;
+  color: var(--danger);
+  padding: 10px 14px;
+  background: var(--danger-lt);
+  border-radius: 9px;
+  border-left: 3px solid var(--danger);
+  margin-top: 0.75rem;
+  display: none;
+  align-items: center;
+  gap: 7px;
+}
+.err-box.show { display: flex; }
+
+.btn-login {
+  width: 100%;
+  padding: 14px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-family: 'Sora', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: 1.4rem;
+  transition: background 0.2s, box-shadow 0.2s;
+  box-shadow: 0 4px 14px rgba(37,99,235,0.30);
+  letter-spacing: 0.02em;
+}
+.btn-login:hover { background: #1d4ed8; box-shadow: 0 6px 20px rgba(37,99,235,0.38); }
+
+.login-back {
+  text-align: center;
+  margin-top: 1.4rem;
+  font-size: 13px;
+  color: var(--text-m);
+}
+.login-back span {
+  color: var(--accent);
+  cursor: pointer;
+  font-weight: 600;
+}
+.login-back span:hover { text-decoration: underline; }
+
+/* ============================================================
+   ██████  PÁGINA 3 — APP PRINCIPAL
+   ============================================================ */
+#page-app {
+  display: none;
+  flex-direction: column;
+  min-height: 100vh;
+}
+#page-app.active { display: flex; }
+
+/* TOP BAR */
+.topbar {
+  background: var(--topbar);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 2rem;
+  height: 62px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 500;
+  transition: background 0.5s, border-color 0.4s;
+}
+.topbar-l { display: flex; align-items: center; gap: 16px; }
+.tb-logo {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-family: 'Sora', sans-serif;
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--text-h);
+  letter-spacing: -0.4px;
+}
+.tb-logo-icon {
+  width: 33px; height: 33px;
+  background: var(--accent);
+  border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 2px 8px rgba(37,99,235,0.22);
+}
+.tb-logo-icon svg { width:17px; height:17px; fill:white; }
+.tb-div { width:1px; height:26px; background:var(--border); }
+.tb-nav { display: flex; gap: 2px; }
+.nav-b {
+  padding: 8px 15px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-m);
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex; align-items: center; gap: 5px;
+}
+.nav-b svg { width:15px; height:15px; }
+.nav-b:hover { color: var(--text-h); background: var(--accent-lt); }
+.nav-b.on { color: var(--accent); background: var(--accent-lt); }
+
+.topbar-r { display: flex; align-items: center; gap: 10px; }
+.user-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 13px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  transition: background 0.5s, border-color 0.4s;
+}
+.user-av {
+  width: 27px; height: 27px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; color: white;
+}
+.user-nm { font-size: 13px; font-weight: 600; color: var(--text-h); }
+.user-role {
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.btn-logout {
+  width: 33px; height: 33px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-m);
+  transition: all 0.2s;
+}
+.btn-logout:hover { background: var(--danger-lt); color: var(--danger); border-color: var(--danger); }
+.btn-logout svg { width:15px; height:15px; }
+
+/* MAIN */
+.app-main {
+  flex: 1;
+  padding: 2rem;
+  max-width: 1160px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* VIEWS dentro do app */
+.view { display: none; }
+.view.on { display: block; animation: pgIn 0.35s ease both; }
+
+/* Page header */
+.ph {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+.ph-title {
+  font-family: 'Sora', sans-serif;
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--text-h);
+  letter-spacing: -0.4px;
+}
+.ph-sub { font-size: 13px; color: var(--text-m); margin-top: 3px; }
+
+/* CARD */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 1.6rem;
+  box-shadow: var(--shadow-sm);
+  transition: background 0.5s, border-color 0.4s, box-shadow 0.2s;
+}
+.card:hover { box-shadow: var(--shadow-md); }
+.card-h {
+  font-family: 'Sora', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-h);
+  margin-bottom: 1.4rem;
+  display: flex; align-items: center; gap: 8px;
+  letter-spacing: -0.1px;
+}
+.card-h svg { width:16px; height:16px; color: var(--accent); }
+
+/* STATS */
+.stats-g {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 14px;
+  margin-bottom: 2rem;
+}
+.stat-c {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 1.25rem 1.4rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.25s;
+}
+.stat-c:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+.stat-ico {
+  width: 44px; height: 44px;
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.stat-ico svg { width:20px; height:20px; }
+.stat-v {
+  font-family: 'Sora', sans-serif;
+  font-size: 26px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -1px;
+}
+.stat-l { font-size: 12px; color: var(--text-m); margin-top: 3px; font-weight: 500; }
+
+/* FILTER BAR */
+.fbar {
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+  margin-bottom: 1.4rem;
+}
+.fb {
+  padding: 7px 16px;
+  background: var(--surface-2);
+  border: 1.5px solid var(--border);
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-m);
+  cursor: pointer;
+  transition: all 0.2s;
+  letter-spacing: 0.01em;
+}
+.fb:hover { border-color: var(--accent); color: var(--accent); }
+.fb.on { background: var(--accent); color: #fff; border-color: var(--accent); box-shadow: 0 2px 10px rgba(37,99,235,0.22); }
+
+.search-wrap { position: relative; flex: 1; min-width: 180px; }
+.search-wrap svg { position:absolute; left:12px; top:50%; transform:translateY(-50%); width:15px; height:15px; color:var(--text-m); pointer-events:none; }
+.search-inp {
+  width: 100%;
+  padding: 8px 12px 8px 36px;
+  background: var(--surface-2);
+  border: 1.5px solid var(--border);
+  border-radius: 20px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: var(--text-h);
+  outline: none;
+  transition: all 0.2s;
+}
+.search-inp:focus { border-color: var(--accent); box-shadow: var(--glow); }
+.search-inp::placeholder { color: var(--text-m); opacity: 0.5; }
+
+/* REQUEST CARDS */
+.rlist { display: flex; flex-direction: column; gap: 10px; }
+.rc {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 13px;
+  padding: 1.15rem 1.4rem;
+  border-left: 3px solid transparent;
+  transition: all 0.2s;
+  box-shadow: var(--shadow-sm);
+}
+.rc:hover { box-shadow: var(--shadow-md); border-color: var(--border-strong); }
+.rc.st-pendente { border-left-color: var(--warn); }
+.rc.st-aprovado  { border-left-color: var(--success); }
+.rc.st-recusado  { border-left-color: var(--danger); }
+.rc-top { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:7px; margin-bottom:8px; }
+.rc-id { font-family:'Sora',sans-serif; font-size:14px; font-weight:700; color:var(--text-h); }
+.rc-badges { display:flex; gap:5px; flex-wrap:wrap; align-items:center; }
+.rc-meta { font-size:12px; color:var(--text-m); display:flex; gap:10px; flex-wrap:wrap; margin-bottom:7px; }
+.rc-tags { display:flex; flex-wrap:wrap; gap:5px; }
+.tag {
+  padding: 3px 9px;
+  background: var(--bg-deep);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 11px;
+  color: var(--text-m);
+  transition: background 0.4s, border-color 0.4s;
+}
+.stock-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 5px;
+  flex-shrink: 0;
+}
+.stock-dot.dot-red    { background: var(--danger);  box-shadow: 0 0 0 3px var(--danger-lt); }
+.stock-dot.dot-orange { background: var(--warn);    box-shadow: 0 0 0 3px var(--warn-lt); }
+.stock-dot.dot-green  { background: var(--success); box-shadow: 0 0 0 3px var(--success-lt); }
+.stock-dot.dot-gray   { background: var(--text-m);  opacity: .35; }
+.tag-stock { display:inline-flex; align-items:center; }
+.stock-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  align-items: center;
+  padding: 10px 14px;
+  background: var(--bg-deep);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 12px;
+  color: var(--text-m);
+  margin-bottom: 14px;
+}
+.stock-legend b { color: var(--text-h); margin-right: 2px; }
+.stock-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr auto auto;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 4px;
+  border-bottom: 1px solid var(--border);
+}
+.stock-row:last-child { border-bottom: none; }
+.stock-qty-inp {
+  width: 100%;
+  padding: 7px 9px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--bg);
+  color: var(--text-h);
+  font-size: 13px;
+}
+.stock-qty-inp:focus { outline: none; border-color: var(--accent); }
+.stock-row-head {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr auto auto;
+  gap: 10px;
+  padding: 0 4px 7px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-m);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+
+/* ============================================================
+   MENSAGENS (FLUTUANTE)
+   ============================================================ */
+.msg-btn {
+  position: fixed;
+  bottom: 18px;
+  left: 18px;
+  z-index: 9999;
+  width: 50px;
+  height: 50px;
+  background: var(--accent);
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-md);
+  font-size: 22px;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.msg-btn:hover { transform: translateY(-2px) scale(1.04); box-shadow: var(--shadow-lg); }
+.msg-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  background: var(--danger);
+  color: #fff;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--bg);
+}
+
+.modal-chat { display: flex; flex-direction: column; max-width: 480px; height: 74vh; }
+.chat-quick {
+  align-self: flex-start;
+  display: flex; align-items: center; gap: 6px;
+  padding: 8px 14px;
+  margin-bottom: 12px;
+  background: var(--warn-lt);
+  color: var(--warn);
+  border: 1px solid rgba(217,119,6,0.25);
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.chat-quick:hover { background: var(--warn); color: #fff; }
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 4px 2px 10px;
+}
+.chat-bubble {
+  max-width: 82%;
+  padding: 9px 13px;
+  border-radius: 14px;
+  font-size: 13px;
+  line-height: 1.5;
+  background: var(--bg-deep);
+  border: 1px solid var(--border);
+}
+.chat-bubble.me { align-self: flex-end; background: var(--accent); color: #fff; border-color: var(--accent); border-bottom-right-radius: 4px; }
+.chat-bubble.other { align-self: flex-start; border-bottom-left-radius: 4px; }
+.chat-bubble.sugestao { background: var(--warn-lt); border-color: rgba(217,119,6,0.3); }
+.chat-bubble.me.sugestao { background: var(--warn); color: #fff; border-color: var(--warn); }
+.chat-bubble-tag { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; margin-bottom: 3px; opacity: .85; }
+.chat-bubble-name { font-size: 11px; font-weight: 700; margin-bottom: 2px; opacity: .8; }
+.chat-bubble-text { white-space: pre-wrap; word-break: break-word; }
+.chat-bubble-time { font-size: 10px; opacity: .65; margin-top: 4px; text-align: right; }
+.chat-input-row { display: flex; gap: 8px; margin-top: 10px; }
+.chat-input-row input { flex: 1; }
+.chat-empty { text-align:center; padding:2rem 1rem; color:var(--text-m); font-size:13px; }
+.rc-acts { display:flex; gap:6px; justify-content:flex-end; margin-top:10px; flex-wrap:wrap; }
+
+/* BADGES */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.b-pendente { background:var(--warn-lt);    color:var(--warn);    border:1px solid rgba(217,119,6,0.20); }
+.b-aprovado  { background:var(--success-lt); color:var(--success); border:1px solid rgba(22,163,74,0.20);  }
+.b-recusado  { background:var(--danger-lt);  color:var(--danger);  border:1px solid rgba(220,38,38,0.20);  }
+.b-baixa    { background:var(--success-lt); color:var(--success); }
+.b-media    { background:var(--warn-lt);    color:var(--warn);    }
+.b-alta     { background:var(--danger-lt);  color:var(--danger);  }
+.b-cat      { background:var(--accent-lt);  color:var(--accent);  border:1px solid var(--border-strong); }
+
+/* ACTION BUTTONS */
+.act-btn {
+  padding: 7px 13px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.18s;
+  display: flex; align-items: center; gap: 4px;
+  border: 1px solid transparent;
+  letter-spacing: 0.01em;
+}
+.act-btn svg { width:13px; height:13px; }
+.act-detail { background:var(--accent-lt);  color:var(--accent);  border-color:var(--border-strong); }
+.act-detail:hover { background:var(--accent); color:#fff; }
+.act-aprov  { background:var(--success-lt); color:var(--success); border-color:rgba(22,163,74,0.25); }
+.act-aprov:hover  { background:var(--success); color:#fff; }
+.act-recus  { background:var(--danger-lt);  color:var(--danger);  border-color:rgba(220,38,38,0.20); }
+.act-recus:hover  { background:var(--danger); color:#fff; }
+
+/* FORM ELEMENTS (inside views) */
+.fgrid { display:grid; grid-template-columns:1fr 1fr; gap:1.2rem; }
+.fgrid .fw { grid-column:1/-1; }
+.fl2 { display:block; font-size:12px; font-weight:600; color:var(--text-b); margin-bottom:5px; letter-spacing:0.02em; text-transform:uppercase; }
+.fi2 {
+  width:100%; padding:11px 14px;
+  border:1.5px solid var(--border); border-radius:9px;
+  font-family:'Inter',sans-serif; font-size:14px; color:var(--text-h);
+  background:var(--surface); outline:none;
+  transition:border-color 0.2s, box-shadow 0.2s, background 0.5s, color 0.4s;
+}
+.fi2:focus { border-color:var(--accent); box-shadow:var(--glow); }
+.fi2::placeholder { color:var(--text-m); opacity:0.5; }
+.ta2 {
+  width:100%; padding:11px 14px; min-height:96px;
+  border:1.5px solid var(--border); border-radius:9px;
+  font-family:'Inter',sans-serif; font-size:14px; color:var(--text-h);
+  background:var(--surface); resize:vertical; outline:none;
+  transition:border-color 0.2s, box-shadow 0.2s, background 0.5s, color 0.4s;
+}
+.ta2:focus { border-color:var(--accent); box-shadow:var(--glow); }
+.ta2::placeholder { color:var(--text-m); opacity:0.5; }
+
+.sel2 {
+  width:100%; padding:11px 14px;
+  border:1.5px solid var(--border); border-radius:9px;
+  font-family:'Inter',sans-serif; font-size:14px; color:var(--text-h);
+  background:var(--surface); outline:none; cursor:pointer; appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%235a7fa8' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat:no-repeat; background-position:right 12px center; padding-right:38px;
+  transition:border-color 0.2s, box-shadow 0.2s, background 0.5s, color 0.4s;
+}
+.sel2:focus { border-color:var(--accent); box-shadow:var(--glow); }
+
+.prio-opts { display:flex; gap:7px; }
+.prio-opt {
+  flex:1; padding:10px; border:1.5px solid var(--border); border-radius:9px;
+  text-align:center; font-size:13px; font-weight:600; cursor:pointer; color:var(--text-m);
+  transition:all 0.2s; background:var(--surface);
+}
+.prio-opt:hover { border-color:var(--accent); color:var(--accent); }
+.prio-low { border-color:var(--success); background:var(--success-lt); color:var(--success); }
+.prio-med { border-color:var(--warn);    background:var(--warn-lt);    color:var(--warn);    }
+.prio-hig { border-color:var(--danger);  background:var(--danger-lt);  color:var(--danger);  }
+
+.item-row {
+  display:grid; grid-template-columns:2fr 1fr 1fr auto;
+  gap:7px; align-items:center;
+}
+.btn-add-item {
+  display:flex; align-items:center; gap:6px; justify-content:center;
+  width:100%; padding:10px;
+  border:1.5px dashed var(--border); border-radius:9px;
+  background:var(--accent-lt); color:var(--accent);
+  font-size:13px; font-weight:600; cursor:pointer;
+  transition:all 0.2s; margin-top:8px;
+}
+.btn-add-item:hover { border-color:var(--accent); background:rgba(37,99,235,0.14); }
+.btn-add-item svg { width:14px; height:14px; }
+.btn-rm {
+  width:31px; height:31px; background:var(--danger-lt); border:none;
+  border-radius:8px; color:var(--danger); cursor:pointer;
+  display:flex; align-items:center; justify-content:center; transition:all 0.2s;
+}
+.btn-rm:hover { background:var(--danger); color:#fff; }
+.btn-rm svg { width:13px; height:13px; }
+
+.form-row { display:flex; gap:10px; justify-content:flex-end; margin-top:1.5rem; }
+
+.btn-sec {
+  padding:11px 22px; background:var(--surface-2);
+  color:var(--accent); border:1.5px solid var(--border);
+  border-radius:9px; font-family:'Inter',sans-serif; font-size:13px; font-weight:600;
+  cursor:pointer; transition:all 0.2s;
+}
+.btn-sec:hover { background:var(--accent-lt); border-color:var(--accent); }
+
+.btn-sub {
+  padding:11px 26px; background:var(--accent); color:#fff; border:none;
+  border-radius:9px; font-family:'Sora',sans-serif; font-size:13px; font-weight:700;
+  cursor:pointer; box-shadow:0 3px 10px rgba(37,99,235,0.28);
+  transition:all 0.2s; display:flex; align-items:center; gap:7px; letter-spacing:0.01em;
+}
+.btn-sub:hover { background:#1d4ed8; box-shadow:0 5px 16px rgba(37,99,235,0.36); }
+.btn-sub svg { width:14px; height:14px; }
+
+.sep { border:none; border-top:1px solid var(--border); margin:1.6rem 0; transition:border-color 0.4s; }
+
+/* EMPTY STATE */
+.empty {
+  text-align:center; padding:3.5rem 2rem; color:var(--text-m);
+}
+.empty svg { width:48px; height:48px; margin:0 auto 14px; opacity:0.3; display:block; }
+.empty h3 { font-family:'Sora',sans-serif; font-size:16px; color:var(--text-b); margin-bottom:5px; }
+.empty p { font-size:13px; }
+
+/* TIMELINE */
+.timeline { display:flex; flex-direction:column; }
+.tl-item {
+  display:flex; gap:14px; padding:1rem 0;
+  border-bottom:1px solid var(--border); transition:border-color 0.4s;
+}
+.tl-item:last-child { border-bottom:none; }
+.tl-dot {
+  width:36px; height:36px; border-radius:10px;
+  display:flex; align-items:center; justify-content:center; flex-shrink:0;
+}
+.tl-dot svg { width:16px; height:16px; }
+.tl-title { font-size:13px; font-weight:600; color:var(--text-h); }
+.tl-sub { font-size:12px; color:var(--text-m); margin-top:2px; }
+.tl-date { font-size:11px; color:var(--text-m); margin-top:4px; }
+
+/* MODAL */
+.overlay {
+  position:fixed; inset:0;
+  background:rgba(10,20,40,0.45);
+  z-index:2000;
+  display:flex; align-items:center; justify-content:center;
+  padding:1rem;
+  opacity:0; pointer-events:none;
+  transition:opacity 0.3s, backdrop-filter 0.3s;
+  backdrop-filter:blur(0px);
+}
+.overlay.open { opacity:1; pointer-events:all; backdrop-filter:blur(5px); }
+.overlay.open .modal { transform:translateY(0) scale(1); }
+.modal {
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:20px; padding:2rem;
+  width:100%; max-width:540px; max-height:86vh; overflow-y:auto;
+  box-shadow:var(--shadow-lg);
+  transform:translateY(16px) scale(0.97);
+  transition:transform 0.35s cubic-bezier(0.22,1,0.36,1), background 0.5s;
+}
+.modal-h {
+  display:flex; align-items:center; justify-content:space-between;
+  margin-bottom:1.4rem; padding-bottom:1rem; border-bottom:1px solid var(--border);
+}
+.modal-title { font-family:'Sora',sans-serif; font-size:17px; font-weight:700; color:var(--text-h); }
+.modal-cl {
+  width:32px; height:32px; background:var(--surface-2); border:1px solid var(--border);
+  border-radius:8px; cursor:pointer; display:flex; align-items:center; justify-content:center;
+  color:var(--text-m); transition:all 0.2s;
+}
+.modal-cl:hover { background:var(--danger-lt); color:var(--danger); }
+.modal-cl svg { width:15px; height:15px; }
+.modal-foot {
+  display:flex; gap:8px; justify-content:flex-end; margin-top:1.4rem;
+  padding-top:1rem; border-top:1px solid var(--border);
+}
+.ms-lbl { font-size:11px; font-weight:700; color:var(--text-m); text-transform:uppercase; letter-spacing:0.07em; margin-bottom:3px; }
+.ms-val { font-size:13px; color:var(--text-h); font-weight:500; }
+.modal-tbl { width:100%; border-collapse:collapse; font-size:13px; }
+.modal-tbl th { font-size:11px; font-weight:700; color:var(--text-m); text-transform:uppercase; padding:7px 0; border-bottom:1px solid var(--border); text-align:left; }
+.modal-tbl td { padding:9px 0; border-bottom:1px solid var(--border); color:var(--text-h); }
+.modal-tbl tr:last-child td { border-bottom:none; }
+.ta-m {
+  width:100%; padding:11px 14px; min-height:90px;
+  border:1.5px solid var(--border); border-radius:9px;
+  font-family:'Inter',sans-serif; font-size:13px; color:var(--text-h);
+  background:var(--surface); resize:vertical; outline:none;
+  transition:all 0.2s;
+}
+.ta-m:focus { border-color:var(--accent); box-shadow:var(--glow); }
+
+/* SCROLLBAR */
+::-webkit-scrollbar { width:5px; height:5px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
+::-webkit-scrollbar-thumb:hover { background:var(--accent); }
+
+/* RESPONSIVE */
+@media(max-width:640px){
+  .login-card { padding:2rem 1.5rem; }
+  .app-main { padding:1rem; }
+  .fgrid { grid-template-columns:1fr; }
+  .fgrid .fw { grid-column:1; }
+  .topbar { padding:0 1rem; }
+  .tb-nav { display:none; }
+  .land-nav-right .land-nav-link { display:none; }
+  .item-row { grid-template-columns:1fr 1fr auto; }
+  .item-row>:nth-child(3) { display:none; }
+  .steps-row::before { display:none; }
+  .step { padding:0 10px; }
+}
+</style>
+</head>
+<body>
+
+<!-- Toggle Dia/Noite (global, aparece em todas as páginas) -->
+<button class="theme-btn" onclick="toggleTheme()" aria-label="Alternar modo">
+  <span class="icon-day">☀️</span>
+  <span class="icon-night">🌙</span>
+</button>
+
+<!-- Mensagens (aparece apenas após login) -->
+<button class="msg-btn" id="msg-btn" onclick="openMensagens()" aria-label="Mensagens">
+  💬
+  <span class="msg-badge" id="msg-badge">0</span>
+</button>
+
+<!-- Toast -->
+<div id="toast-wrap"></div>
+
+<!-- ======================================================
+     PÁGINA 1 — LANDING / PROPAGANDA
+     ====================================================== -->
+<div id="page-land" class="page active">
+
+  <nav class="land-nav">
+    <div class="land-nav-logo">
+      <div class="land-nav-logo-icon">
+        <svg viewBox="0 0 24 24" fill="white"><path d="M12 3L20 7v4c0 5-3.5 9.7-8 11-4.5-1.3-8-6-8-11V7l8-4z"/></svg>
+      </div>
+      EduRKL
+    </div>
+    <div class="land-nav-right">
+      <span class="land-nav-link" onclick="scrollToSection('features')">Funcionalidades</span>
+      <span class="land-nav-link" onclick="scrollToSection('how')">Como funciona</span>
+      <button class="btn-nav" onclick="goTo('page-login')">Acessar o Sistema</button>
+    </div>
+  </nav>
+
+  <section class="land-hero">
+    <div class="land-badge">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3L20 7v4c0 5-3.5 9.7-8 11-4.5-1.3-8-6-8-11V7l8-4z"/></svg>
+      Plataforma Educacional
+    </div>
+    <h1 class="land-title">
+      Gestão de materiais<br>
+      <span class="shine-text">simples, rápida</span> e eficiente
+    </h1>
+    <p class="land-sub">
+      O EduRKL conecta funcionários e gestores escolares em um único sistema. 
+      Solicite, aprove e acompanhe materiais com total transparência.
+    </p>
+    <div class="land-cta-row">
+      <button class="btn-cta" onclick="goTo('page-login')">Entrar no Sistema</button>
+      <button class="btn-cta outline" onclick="scrollToSection('how')">Saiba como funciona</button>
+    </div>
+
+  </section>
+
+  <section class="land-features" id="features">
+    <div class="land-section-label">Funcionalidades</div>
+    <h2 class="land-section-title">Tudo que sua escola precisa em um só lugar</h2>
+    <div class="feat-grid">
+      <div class="feat-card">
+        <div class="feat-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        </div>
+        <div class="feat-title">Solicitação Digital</div>
+        <div class="feat-desc">Funcionários registram pedidos de materiais de forma rápida, com categorias, prioridade e justificativa, sem papéis e sem filas.</div>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+        </div>
+        <div class="feat-title">Aprovação Centralizada</div>
+        <div class="feat-desc">Administradores visualizam, aprovam ou recusam pedidos com um clique, mantendo o controle total do fluxo de materiais.</div>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </div>
+        <div class="feat-title">Histórico Completo</div>
+        <div class="feat-desc">Todas as ações ficam registradas com data, horário e responsável. Auditoria total sem esforço adicional.</div>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        </div>
+        <div class="feat-title">Painel em Tempo Real</div>
+        <div class="feat-desc">Estatísticas sempre atualizadas: pendentes, aprovados e recusados. Tome decisões com dados concretos à mão.</div>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+        </div>
+        <div class="feat-title">Perfis Separados</div>
+        <div class="feat-desc">Acesso diferenciado para funcionários e administradores, com permissões adequadas a cada função na instituição.</div>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+        </div>
+        <div class="feat-title">Acesso Seguro</div>
+        <div class="feat-desc">Autenticação por e-mail e senha para cada perfil. Apenas pessoas autorizadas acessam o sistema institucional.</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="land-how" id="how">
+    <div class="land-how-inner">
+      <div class="land-section-label">Como funciona</div>
+      <h2 class="land-section-title">Do pedido à entrega em três etapas</h2>
+      <div class="steps-row">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-title">Início — Solicitação</div>
+          <div class="step-desc">O funcionário preenche o formulário indicando materiais, quantidade, categoria e prioridade.</div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-title">Meio — Análise</div>
+          <div class="step-desc">O administrador recebe, analisa e decide: aprova ou informa o motivo da recusa.</div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-title">Fim — Resultado</div>
+          <div class="step-desc">O funcionário visualiza o status atualizado e o histórico completo da solicitação.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="land-footer">
+    <div class="land-footer-logo">EduRKL</div>
+    <div class="land-footer-sub">Sistema de Gestão de Materiais Escolares · Todos os direitos reservados</div>
+    <div class="land-footer-links">
+      <span onclick="goTo('page-login')">Acessar o Sistema</span>
+      <span>Política de Privacidade</span>
+      <span>Contato</span>
+    </div>
+  </footer>
+
+</div><!-- /page-land -->
+
+
+<!-- ======================================================
+     PÁGINA 2 — LOGIN
+     ====================================================== -->
+<div id="page-login" class="page">
+
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="login-logo-icon">
+        <svg viewBox="0 0 24 24" fill="white"><path d="M12 3L20 7v4c0 5-3.5 9.7-8 11-4.5-1.3-8-6-8-11V7l8-4z"/></svg>
+      </div>
+      <div class="login-logo-text">
+        <h1>EduRKL</h1>
+        <p>Sistema de Materiais Escolares</p>
+      </div>
+    </div>
+
+    <h2 class="login-h">Acesso ao sistema</h2>
+    <p class="login-sub">Selecione seu perfil e informe as credenciais</p>
+
+    <div class="role-tabs">
+      <button class="role-tab on" id="tab-func" onclick="setRole('funcionario')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        Funcionário
+      </button>
+      <button class="role-tab" id="tab-adm" onclick="setRole('admin')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14"/></svg>
+        Administrador
+      </button>
+    </div>
+
+    <div class="fg">
+      <label class="fl" for="l-email">E-mail institucional</label>
+      <input class="fi" type="email" id="l-email" placeholder="seu@escola.edu.br">
+    </div>
+    <div class="fg">
+      <label class="fl" for="l-senha">Senha</label>
+      <div class="fi-pass-wrap">
+        <input class="fi" type="password" id="l-senha" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
+        <button type="button" class="fi-eye" id="l-senha-eye" onclick="toggleSenhaVisivel()" aria-label="Mostrar senha">
+          <svg class="eye-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          <svg class="eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.94 10.94 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A10.94 10.94 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="err-box" id="err-box">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+      <span id="err-txt">Credenciais incorretas.</span>
+    </div>
+
+    <button class="btn-login" onclick="doLogin()">Entrar no Sistema</button>
+
+    <div class="login-back">
+      <span onclick="goTo('page-land')">← Voltar para a página inicial</span>
+    </div>
+  </div>
+
+</div><!-- /page-login -->
+
+
+<!-- ======================================================
+     PÁGINA 3 — APP
+     ====================================================== -->
+<div id="page-app" class="page">
+
+  <header class="topbar">
+    <div class="topbar-l">
+      <div class="tb-logo">
+        <div class="tb-logo-icon">
+          <svg viewBox="0 0 24 24" fill="white"><path d="M12 3L20 7v4c0 5-3.5 9.7-8 11-4.5-1.3-8-6-8-11V7l8-4z"/></svg>
+        </div>
+        EduRKL
+      </div>
+      <div class="tb-div"></div>
+      <nav class="tb-nav" id="tb-nav"></nav>
+    </div>
+    <div class="topbar-r">
+      <div class="user-pill">
+        <div class="user-av" id="u-av" style="background:linear-gradient(135deg,#2563eb,#60a5fa)">JS</div>
+        <span class="user-nm" id="u-nm">João</span>
+        <span class="user-role" id="u-role" style="background:rgba(37,99,235,.12);color:#2563eb">Func</span>
+      </div>
+      <button class="btn-logout" onclick="doLogout()" title="Sair">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main class="app-main">
+
+    <!-- VIEW: Func — Painel -->
+    <div class="view on" id="vw-func-dash">
+      <div class="ph">
+        <div>
+          <div class="ph-title">Meu Painel</div>
+          <div class="ph-sub">Acompanhe suas solicitações</div>
+        </div>
+        <button class="btn-sub" onclick="navApp('vw-func-nova','nav-nova')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Nova Solicitação
+        </button>
+      </div>
+      <div class="stats-g" id="func-stats"></div>
+      <div class="card">
+        <div class="card-h">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/></svg>
+          Minhas Solicitações
+        </div>
+        <div class="fbar">
+          <button class="fb on" onclick="filterFunc('todos',this)">Todos</button>
+          <button class="fb" onclick="filterFunc('pendente',this)">Pendentes</button>
+          <button class="fb" onclick="filterFunc('aprovado',this)">Aprovados</button>
+          <button class="fb" onclick="filterFunc('recusado',this)">Recusados</button>
+        </div>
+        <div class="rlist" id="func-list"></div>
+      </div>
+    </div>
+
+    <!-- VIEW: Func — Nova Solicitação -->
+    <div class="view" id="vw-func-nova">
+      <div class="ph">
+        <div>
+          <div class="ph-title">Nova Solicitação</div>
+          <div class="ph-sub">Preencha os dados do pedido</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-h">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          Dados da Solicitação
+        </div>
+        <div class="fgrid">
+          <div class="fg">
+            <label class="fl2">Categoria</label>
+            <select class="sel2" id="f-cat">
+              <option value="">Selecione...</option>
+              <option value="laboratorio">🔬 Laboratório de Ciências</option>
+              <option value="informatica">💻 Laboratório de Informática</option>
+              <option value="escolares">📚 Materiais Escolares</option>
+              <option value="limpeza">🧹 Materiais de Limpeza</option>
+              <option value="escritorio">📎 Escritório</option>
+              <option value="esportes">⚽ Educação Física</option>
+              <option value="artes">🎨 Artes e Cultura</option>
+            </select>
+          </div>
+          <div class="fg">
+            <label class="fl2">Setor / Turma</label>
+            <input class="fi2" type="text" id="f-setor" placeholder="Ex: Turma 8B, Lab. Ciências...">
+          </div>
+          <div class="fg fw">
+            <label class="fl2">Justificativa</label>
+            <textarea class="ta2" id="f-just" placeholder="Descreva o motivo e finalidade dos materiais..."></textarea>
+          </div>
+          <div class="fg fw">
+            <label class="fl2">Prioridade</label>
+            <div class="prio-opts">
+              <div class="prio-opt" id="p-baixa" onclick="setPrio('baixa')">🟢 Baixa</div>
+              <div class="prio-opt" id="p-media" onclick="setPrio('media')">🟡 Média</div>
+              <div class="prio-opt" id="p-alta"  onclick="setPrio('alta')">🔴 Alta</div>
+            </div>
+          </div>
+          <div class="fg">
+            <label class="fl2">Data necessária</label>
+            <input class="fi2" type="date" id="f-data">
+          </div>
+        </div>
+
+        <hr class="sep">
+
+        <div class="card-h" style="margin-bottom:1rem">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/></svg>
+          Itens Solicitados
+        </div>
+
+        <div style="display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:7px;margin-bottom:7px;padding:0 2px;">
+          <span style="font-size:11px;font-weight:700;color:var(--text-m);text-transform:uppercase;letter-spacing:.06em">Material</span>
+          <span style="font-size:11px;font-weight:700;color:var(--text-m);text-transform:uppercase;letter-spacing:.06em">Qtd</span>
+          <span style="font-size:11px;font-weight:700;color:var(--text-m);text-transform:uppercase;letter-spacing:.06em">Unid.</span>
+          <span></span>
+        </div>
+
+        <div id="items-c"></div>
+        <button class="btn-add-item" onclick="addItem()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Adicionar Item
+        </button>
+
+        <div class="form-row">
+          <button class="btn-sec" onclick="clearForm()">Limpar</button>
+          <button class="btn-sub" onclick="submitReq()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            Enviar Solicitação
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW: Func — Histórico -->
+    <div class="view" id="vw-func-hist">
+      <div class="ph"><div><div class="ph-title">Histórico</div><div class="ph-sub">Atividades registradas</div></div></div>
+      <div class="card">
+        <div class="card-h">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          Atividades
+        </div>
+        <div class="timeline" id="func-hist-tl"></div>
+      </div>
+    </div>
+
+    <!-- VIEW: Adm — Painel -->
+    <div class="view" id="vw-adm-dash">
+      <div class="ph">
+        <div><div class="ph-title">Painel Administrativo</div><div class="ph-sub">Gerencie todas as solicitações</div></div>
+        <button class="btn-sub" onclick="navApp('vw-adm-estoque','nav-estoque');renderEstoque()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 12v7a2 2 0 01-2 2H6a2 2 0 01-2-2v-7"/><path d="M22 7H2v5h20V7z"/><path d="M12 22V7"/></svg>
+          Ver Estoque
+        </button>
+      </div>
+      <div class="stats-g" id="adm-stats"></div>
+      <div class="card">
+        <div class="card-h">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+          Todas as Solicitações
+        </div>
+        <div class="stock-legend">
+          <span><b>Itens dos pedidos — estoque:</b></span>
+          <span><span class="stock-dot dot-green"></span>Normal</span>
+          <span><span class="stock-dot dot-orange"></span>Baixo</span>
+          <span><span class="stock-dot dot-red"></span>Crítico</span>
+          <span><span class="stock-dot dot-gray"></span>Sem controle</span>
+        </div>
+        <div class="fbar">
+          <div class="search-wrap">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input class="search-inp" type="text" id="adm-search" placeholder="Buscar por funcionário ou setor..." oninput="renderAdm()">
+          </div>
+          <button class="fb on" onclick="filterAdm('todos',this)">Todos</button>
+          <button class="fb" onclick="filterAdm('pendente',this)">Pendentes</button>
+          <button class="fb" onclick="filterAdm('aprovado',this)">Aprovados</button>
+          <button class="fb" onclick="filterAdm('recusado',this)">Recusados</button>
+        </div>
+        <div class="rlist" id="adm-list"></div>
+      </div>
+    </div>
+
+    <!-- VIEW: Adm — Histórico -->
+    <div class="view" id="vw-adm-hist">
+      <div class="ph"><div><div class="ph-title">Histórico Geral</div><div class="ph-sub">Todas as atividades do sistema</div></div></div>
+      <div class="card">
+        <div class="card-h">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          Atividades
+        </div>
+        <div class="timeline" id="adm-hist-tl"></div>
+      </div>
+    </div>
+
+    <!-- VIEW: Adm — Cadastrar Usuário -->
+    <div class="view" id="vw-adm-users">
+      <div class="ph"><div><div class="ph-title">Cadastrar Usuário</div><div class="ph-sub">Crie novos acessos ao sistema</div></div></div>
+      <div class="card">
+        <div class="card-h">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+          Novo Usuário
+        </div>
+        <div class="fgrid">
+          <div class="fg">
+            <label class="fl2">Nome completo</label>
+            <input class="fi2" type="text" id="nu-nome" placeholder="Ex: João da Silva">
+          </div>
+          <div class="fg">
+            <label class="fl2">Tipo de acesso</label>
+            <select class="sel2" id="nu-role">
+              <option value="funcionario">Funcionário</option>
+              <option value="admin">Administrador</option>
+            </select>
+          </div>
+          <div class="fg">
+            <label class="fl2">E-mail</label>
+            <input class="fi2" type="email" id="nu-email" placeholder="usuario@exemplo.com">
+          </div>
+          <div class="fg">
+            <label class="fl2">Senha</label>
+            <div class="fi-pass-wrap">
+              <input class="fi2" style="padding-right:44px" type="password" id="nu-senha" placeholder="Crie uma senha">
+              <button type="button" class="fi-eye" id="nu-senha-eye" onclick="toggleNovoUsuarioSenha()" aria-label="Mostrar senha">
+                <svg class="eye-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                <svg class="eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.94 10.94 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A10.94 10.94 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="form-row">
+          <button class="btn-sec" onclick="limparNovoUsuario()">Limpar</button>
+          <button class="btn-sub" onclick="cadastrarUsuario()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Cadastrar
+          </button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-h">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+          Usuários Cadastrados
+        </div>
+        <div id="nu-list"></div>
+      </div>
+    </div>
+
+    <!-- VIEW: Adm — Estoque -->
+    <div class="view" id="vw-adm-estoque">
+      <div class="ph"><div><div class="ph-title">Estoque</div><div class="ph-sub">Controle a quantidade de cada produto</div></div></div>
+
+      <div class="card">
+        <div class="card-h">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 12v7a2 2 0 01-2 2H6a2 2 0 01-2-2v-7"/><path d="M22 7H2v5h20V7z"/><path d="M12 22V7"/></svg>
+          Cadastrar Produto
+        </div>
+        <div class="fgrid">
+          <div class="fg">
+            <label class="fl2">Nome do produto</label>
+            <input class="fi2" type="text" id="es-nome" placeholder="Ex: Papel A4 (resma)">
+          </div>
+          <div class="fg">
+            <label class="fl2">Quantidade</label>
+            <input class="fi2" type="number" min="0" id="es-qtd" placeholder="Ex: 50">
+          </div>
+          <div class="fg">
+            <label class="fl2">Unidade</label>
+            <input class="fi2" type="text" id="es-un" placeholder="Ex: Unid., Resma, Frasco...">
+          </div>
+        </div>
+        <div class="form-row">
+          <button class="btn-sec" onclick="limparProduto()">Limpar</button>
+          <button class="btn-sub" onclick="cadastrarProduto()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Cadastrar / Adicionar ao Estoque
+          </button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-h">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 12v7a2 2 0 01-2 2H6a2 2 0 01-2-2v-7"/><path d="M22 7H2v5h20V7z"/><path d="M12 22V7"/></svg>
+          Produtos em Estoque
+        </div>
+
+        <div class="stock-legend">
+          <span><b>Legenda:</b></span>
+          <span><span class="stock-dot dot-green"></span>Normal — estoque suficiente</span>
+          <span><span class="stock-dot dot-orange"></span>Baixo — estoque em atenção</span>
+          <span><span class="stock-dot dot-red"></span>Crítico — estoque esgotando</span>
+        </div>
+
+        <div class="stock-row-head">
+          <span>Produto</span><span>Quantidade</span><span>Unidade</span><span>Status</span><span></span>
+        </div>
+        <div id="es-list"></div>
+      </div>
+    </div>
+
+  </main>
+</div><!-- /page-app -->
+
+<!-- MODAL: Detalhes -->
+<div class="overlay" id="ov-det">
+  <div class="modal">
+    <div class="modal-h">
+      <span class="modal-title" id="det-title">Detalhes</span>
+      <button class="modal-cl" onclick="closeModal('ov-det')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div id="det-body"></div>
+    <div class="modal-foot" id="det-foot"></div>
+  </div>
+</div>
+
+<!-- MODAL: Recusa -->
+<div class="overlay" id="ov-rec">
+  <div class="modal">
+    <div class="modal-h">
+      <span class="modal-title">Recusar Solicitação</span>
+      <button class="modal-cl" onclick="closeModal('ov-rec')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <p style="font-size:13px;color:var(--text-m);margin-bottom:1rem">Informe o motivo para que o funcionário possa adequar o pedido:</p>
+    <textarea class="ta-m" id="motivo" placeholder="Ex: Estoque insuficiente, orçamento indisponível..."></textarea>
+    <div class="modal-foot">
+      <button class="btn-sec" onclick="closeModal('ov-rec')">Cancelar</button>
+      <button class="act-btn act-recus" style="padding:10px 18px;font-size:13px" onclick="confirmRecuse()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        Confirmar Recusa
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Confirmação de Aprovação / Estoque Atualizado -->
+<div class="overlay" id="ov-aprov">
+  <div class="modal">
+    <div class="modal-h">
+      <span class="modal-title" id="aprov-title">✅ Solicitação Aprovada</span>
+      <button class="modal-cl" onclick="closeModal('ov-aprov')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div id="aprov-body"></div>
+    <div class="modal-foot">
+      <button class="btn-sub" onclick="closeModal('ov-aprov')">Entendi</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Mensagens -->
+<div class="overlay" id="ov-msg">
+  <div class="modal modal-chat">
+    <div class="modal-h">
+      <span class="modal-title">💬 Mensagens</span>
+      <button class="modal-cl" onclick="closeModal('ov-msg')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <button type="button" class="chat-quick" onclick="prepararSugestaoAula()">
+      🎓 Sugestão para aula
+    </button>
+    <div class="chat-messages" id="chat-messages"></div>
+    <div class="chat-input-row">
+      <input class="fi2" type="text" id="chat-input" placeholder="Digite sua mensagem..." onkeydown="if(event.key==='Enter')enviarMensagem()">
+      <button class="btn-sub" onclick="enviarMensagem()">Enviar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   ESTADO GLOBAL
+   ============================================================ */
+let currentUser  = null;
+let currentRole  = 'funcionario';
+let selPriority  = '';
+let itemCnt      = 0;
+let pendRecId    = null;
+let admFilter    = 'todos';
+let funcFilter   = 'todos';
+let registeredUsers = [];
+
+const CREDS = {
+  funcionario: { email:'Secretariaedu@gmail.com', senha:'Exemplo123',
+    nomes:['Secretaria','Ana Lima','João Mendes','Carlos Rocha','Maria Souza','Pedro Alves'] },
+  admin: { email:'Secretariaedu@gmail.com', senha:'Exemplo123', nome:'Secretaria' }
+};
+
+const CAT = {
+  laboratorio:'🔬 Laboratório',
+  informatica:'💻 Informática',
+  escolares:'📚 Escolares',
+  limpeza:'🧹 Limpeza',
+  escritorio:'📎 Escritório',
+  esportes:'⚽ Esportes',
+  artes:'🎨 Artes'
+};
+
+let sols = [
+  {id:'SOL-001',func:'Ana Lima',setor:'Laboratório de Ciências',cat:'laboratorio',just:'Reposição de reagentes para aulas práticas do 9º ano.',prio:'alta',data:'2024-06-20',criado:'12/06/2024',status:'pendente',itens:[{nome:'Ácido Clorídrico 100mL',qtd:5,un:'Frasco'},{nome:'Luvas de Látex',qtd:50,un:'Par'},{nome:'Pipetas de 10mL',qtd:20,un:'Unid.'}],motivo:''},
+  {id:'SOL-002',func:'João Mendes',setor:'Informática - Lab. 1',cat:'informatica',just:'Substituição de equipamentos defeituosos.',prio:'media',data:'2024-06-25',criado:'13/06/2024',status:'aprovado',itens:[{nome:'Mouse USB',qtd:10,un:'Unid.'},{nome:'Teclado ABNT2',qtd:8,un:'Unid.'}],motivo:''},
+  {id:'SOL-003',func:'Carlos Rocha',setor:'Sala dos Professores',cat:'escritorio',just:'Reposição mensal de papelaria.',prio:'baixa',data:'2024-06-28',criado:'14/06/2024',status:'recusado',itens:[{nome:'Papel A4 (resma)',qtd:20,un:'Resma'},{nome:'Canetas',qtd:50,un:'Unid.'}],motivo:'Orçamento do mês já encerrado. Solicite novamente em julho.'},
+  {id:'SOL-004',func:'Maria Souza',setor:'Quadra Esportiva',cat:'esportes',just:'Material desgastado para aulas de educação física.',prio:'media',data:'2024-07-02',criado:'15/06/2024',status:'pendente',itens:[{nome:'Bola de Vôlei',qtd:4,un:'Unid.'},{nome:'Corda de Pular',qtd:10,un:'Unid.'}],motivo:''}
+];
+
+let hist = [
+  {tipo:'aprovado',msg:'SOL-002 aprovada — João Mendes',det:'2 item(ns) de 💻 Informática',data:'Hoje 14:30'},
+  {tipo:'recusado',msg:'SOL-003 recusada — Carlos Rocha',det:'Orçamento encerrado.',data:'Hoje 11:20'},
+  {tipo:'nova',msg:'SOL-004 criada — Maria Souza',det:'2 item(ns) de ⚽ Esportes',data:'Ontem 16:45'}
+];
+
+/* ============================================================
+   ESTOQUE
+   ============================================================ */
+let estoque = [
+  {nome:'Ácido Clorídrico 100mL', qtd:3,   un:'Frasco'},
+  {nome:'Luvas de Látex',         qtd:120, un:'Par'},
+  {nome:'Pipetas de 10mL',        qtd:15,  un:'Unid.'},
+  {nome:'Mouse USB',              qtd:4,   un:'Unid.'},
+  {nome:'Teclado ABNT2',          qtd:18,  un:'Unid.'},
+  {nome:'Papel A4 (resma)',       qtd:60,  un:'Resma'},
+  {nome:'Canetas',                qtd:8,   un:'Unid.'},
+  {nome:'Bola de Vôlei',          qtd:2,   un:'Unid.'},
+  {nome:'Corda de Pular',         qtd:25,  un:'Unid.'}
+];
+
+const ESTOQUE_CRITICO = 5;
+const ESTOQUE_BAIXO   = 20;
+
+function getStockStatus(qtd) {
+  if (qtd <= ESTOQUE_CRITICO) return { cls:'dot-red',    label:'Crítico' };
+  if (qtd <= ESTOQUE_BAIXO)   return { cls:'dot-orange', label:'Baixo'   };
+  return { cls:'dot-green', label:'Normal' };
+}
+
+function findProduto(nome) {
+  const n = (nome||'').trim().toLowerCase();
+  return estoque.find(p => p.nome.trim().toLowerCase() === n) || null;
+}
+
+function limparProduto() {
+  document.getElementById('es-nome').value = '';
+  document.getElementById('es-qtd').value = '';
+  document.getElementById('es-un').value = '';
+}
+
+function cadastrarProduto() {
+  const nome = document.getElementById('es-nome').value.trim();
+  const qtd  = parseInt(document.getElementById('es-qtd').value, 10);
+  const un   = document.getElementById('es-un').value.trim() || 'Unid.';
+
+  if (!nome || isNaN(qtd) || qtd < 0) {
+    toast('Preencha nome e quantidade válida.', 'warn');
+    return;
+  }
+
+  const existente = findProduto(nome);
+  if (existente) {
+    existente.qtd += qtd;
+    toast(`Estoque de "${existente.nome}" atualizado: +${qtd} ${un}.`, 'ok');
+  } else {
+    estoque.push({ nome, qtd, un });
+    toast(`Produto "${nome}" cadastrado no estoque.`, 'ok');
+  }
+
+  limparProduto();
+  renderEstoque();
+  renderAdm();
+}
+
+function atualizarQtdProduto(idx, valor) {
+  const q = parseInt(valor, 10);
+  if (isNaN(q) || q < 0) return;
+  estoque[idx].qtd = q;
+  renderEstoque();
+  renderAdm();
+}
+
+function removerProduto(idx) {
+  const removido = estoque[idx];
+  estoque.splice(idx, 1);
+  renderEstoque();
+  renderAdm();
+  if (removido) toast(`Produto "${removido.nome}" removido do estoque.`, 'err');
+}
+
+function renderEstoque() {
+  const el = document.getElementById('es-list');
+  if (!el) return;
+
+  if (estoque.length === 0) {
+    el.innerHTML = `<div style="text-align:center;padding:2rem 1rem;color:var(--text-m);font-size:13px">
+      Nenhum produto cadastrado ainda.
+    </div>`;
+    return;
+  }
+
+  el.innerHTML = estoque.map((p, i) => {
+    const st = getStockStatus(p.qtd);
+    return `<div class="stock-row">
+      <span style="font-size:13px;color:var(--text-h);font-weight:600">${p.nome}</span>
+      <input class="stock-qty-inp" type="number" min="0" value="${p.qtd}" onchange="atualizarQtdProduto(${i}, this.value)">
+      <span style="font-size:12px;color:var(--text-m)">${p.un}</span>
+      <span style="font-size:12px;display:flex;align-items:center;color:var(--text-m)"><span class="stock-dot ${st.cls}"></span>${st.label}</span>
+      <button class="modal-cl" onclick="removerProduto(${i})" title="Remover produto">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+      </button>
+    </div>`;
+  }).join('');
+}
+
+/* ============================================================
+   MENSAGENS
+   ============================================================ */
+let mensagens = [
+  { de:'Secretaria', deRole:'admin', texto:'Bom dia! Qualquer necessidade de material, me avisem por aqui.', tipo:'msg', data:'Ontem 09:12' },
+  { de:'Ana Lima', deRole:'funcionario', texto:'Bom dia! Vou enviar uma sugestão de aula para a próxima semana.', tipo:'msg', data:'Ontem 09:20' }
+];
+let unread = { admin: 1, funcionario: 0 };
+
+function escapeHtml(str) {
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+function nowStr() {
+  const d = new Date();
+  return `Hoje ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+}
+
+function updateMsgBadge() {
+  const badge = document.getElementById('msg-badge');
+  if (!badge) return;
+  if (!currentUser) { badge.style.display = 'none'; return; }
+  const n = unread[currentUser.role] || 0;
+  if (n > 0) {
+    badge.style.display = 'flex';
+    badge.textContent = n > 9 ? '9+' : n;
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+function openMensagens() {
+  if (!currentUser) return;
+  unread[currentUser.role] = 0;
+  updateMsgBadge();
+  renderMensagens();
+  openModal('ov-msg');
+  setTimeout(() => document.getElementById('chat-input')?.focus(), 200);
+}
+
+function prepararSugestaoAula() {
+  const input = document.getElementById('chat-input');
+  input.value = '';
+  input.dataset.tipo = 'sugestao';
+  input.placeholder = 'Escreva sua sugestão para a aula...';
+  input.focus();
+  toast('Escreva sua sugestão e clique em Enviar.', 'ok');
+}
+
+function enviarMensagem() {
+  if (!currentUser) return;
+  const input = document.getElementById('chat-input');
+  const texto = input.value.trim();
+  if (!texto) return;
+
+  const tipo = input.dataset.tipo === 'sugestao' ? 'sugestao' : 'msg';
+
+  mensagens.push({
+    de: currentUser.nome,
+    deRole: currentUser.role,
+    texto,
+    tipo,
+    data: nowStr()
+  });
+
+  const outro = currentUser.role === 'admin' ? 'funcionario' : 'admin';
+  unread[outro] = (unread[outro] || 0) + 1;
+
+  input.value = '';
+  input.placeholder = 'Digite sua mensagem...';
+  delete input.dataset.tipo;
+
+  renderMensagens();
+  toast(tipo === 'sugestao' ? 'Sugestão para aula enviada!' : 'Mensagem enviada!', 'ok');
+}
+
+function renderMensagens() {
+  const el = document.getElementById('chat-messages');
+  if (!el) return;
+
+  if (mensagens.length === 0) {
+    el.innerHTML = `<div class="chat-empty">Nenhuma mensagem ainda. Diga olá! 👋</div>`;
+    return;
+  }
+
+  el.innerHTML = mensagens.map(m => {
+    const mine = currentUser && m.deRole === currentUser.role;
+    const cls = (mine ? 'me' : 'other') + (m.tipo === 'sugestao' ? ' sugestao' : '');
+    const papel = m.deRole === 'admin' ? 'Secretaria' : 'Funcionário';
+    return `<div class="chat-bubble ${cls}">
+      ${m.tipo === 'sugestao' ? '<div class="chat-bubble-tag">🎓 Sugestão para aula</div>' : ''}
+      <div class="chat-bubble-name">${escapeHtml(m.de)} · ${papel}</div>
+      <div class="chat-bubble-text">${escapeHtml(m.texto)}</div>
+      <div class="chat-bubble-time">${m.data}</div>
+    </div>`;
+  }).join('');
+
+  el.scrollTop = el.scrollHeight;
+}
+
+/* ============================================================
+   TEMA
+   ============================================================ */
+function toggleTheme() {
+  document.body.classList.toggle('night');
+  localStorage.setItem('edurklTheme', document.body.classList.contains('night') ? 'night' : 'day');
+}
+if (localStorage.getItem('edurklTheme') === 'night') document.body.classList.add('night');
+
+/* ============================================================
+   NAVEGAÇÃO ENTRE PÁGINAS
+   ============================================================ */
+function goTo(pid) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  const p = document.getElementById(pid);
+  p.classList.add('active');
+  window.scrollTo(0,0);
+  const msgBtn = document.getElementById('msg-btn');
+  if (msgBtn) msgBtn.style.display = (pid === 'page-app') ? 'flex' : 'none';
+}
+
+function scrollToSection(id) {
+  document.getElementById(id)?.scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
+/* ============================================================
+   ROLE TAB
+   ============================================================ */
+function setRole(role) {
+  currentRole = role;
+  document.querySelectorAll('.role-tab').forEach(t => t.classList.remove('on'));
+  document.getElementById(role === 'funcionario' ? 'tab-func' : 'tab-adm').classList.add('on');
+  document.getElementById('l-email').value = '';
+  document.getElementById('l-senha').value = '';
+  document.getElementById('err-box').classList.remove('show');
+  resetSenhaVisivel();
+}
+
+/* ============================================================
+   MOSTRAR / OCULTAR SENHA
+   ============================================================ */
+function toggleSenhaVisivel() {
+  const input = document.getElementById('l-senha');
+  const btn = document.getElementById('l-senha-eye');
+  const mostrando = input.type === 'text';
+  input.type = mostrando ? 'password' : 'text';
+  btn.classList.toggle('on', !mostrando);
+  btn.setAttribute('aria-label', mostrando ? 'Mostrar senha' : 'Ocultar senha');
+}
+
+function resetSenhaVisivel() {
+  const input = document.getElementById('l-senha');
+  const btn = document.getElementById('l-senha-eye');
+  if (!input || !btn) return;
+  input.type = 'password';
+  btn.classList.remove('on');
+  btn.setAttribute('aria-label', 'Mostrar senha');
+}
+
+/* ============================================================
+   CADASTRAR USUÁRIO (ADMIN)
+   ============================================================ */
+function toggleNovoUsuarioSenha() {
+  const input = document.getElementById('nu-senha');
+  const btn = document.getElementById('nu-senha-eye');
+  const mostrando = input.type === 'text';
+  input.type = mostrando ? 'password' : 'text';
+  btn.classList.toggle('on', !mostrando);
+  btn.setAttribute('aria-label', mostrando ? 'Mostrar senha' : 'Ocultar senha');
+}
+
+function limparNovoUsuario() {
+  document.getElementById('nu-nome').value = '';
+  document.getElementById('nu-email').value = '';
+  document.getElementById('nu-senha').value = '';
+  document.getElementById('nu-role').value = 'funcionario';
+  const input = document.getElementById('nu-senha');
+  const btn = document.getElementById('nu-senha-eye');
+  input.type = 'password';
+  btn.classList.remove('on');
+}
+
+function cadastrarUsuario() {
+  const nome  = document.getElementById('nu-nome').value.trim();
+  const email = document.getElementById('nu-email').value.trim();
+  const senha = document.getElementById('nu-senha').value;
+  const role  = document.getElementById('nu-role').value;
+
+  if (!nome || !email || !senha) {
+    toast('Preencha todos os campos.', 'warn');
+    return;
+  }
+  if (senha.length < 6) {
+    toast('A senha deve ter pelo menos 6 caracteres.', 'warn');
+    return;
+  }
+
+  const emailLower = email.toLowerCase();
+  const jaExiste =
+    CREDS.funcionario.email.toLowerCase() === emailLower ||
+    CREDS.admin.email.toLowerCase() === emailLower ||
+    registeredUsers.some(r => r.email.toLowerCase() === emailLower && r.role === role);
+
+  if (jaExiste) {
+    toast('Já existe um usuário com esse e-mail para esse tipo de acesso.', 'err');
+    return;
+  }
+
+  registeredUsers.push({ nome, email, senha, role });
+  limparNovoUsuario();
+  renderUsersList();
+  toast(`Usuário "${nome}" cadastrado com sucesso!`, 'ok');
+}
+
+function removerUsuario(idx) {
+  const removido = registeredUsers[idx];
+  registeredUsers.splice(idx, 1);
+  renderUsersList();
+  if (removido) toast(`Usuário "${removido.nome}" removido.`, 'err');
+}
+
+function renderUsersList() {
+  const el = document.getElementById('nu-list');
+  if (!el) return;
+
+  if (registeredUsers.length === 0) {
+    el.innerHTML = `<div style="text-align:center;padding:2rem 1rem;color:var(--text-m);font-size:13px">
+      Nenhum usuário cadastrado ainda.
+    </div>`;
+    return;
+  }
+
+  el.innerHTML = registeredUsers.map((u, i) => `
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 4px;border-bottom:1px solid var(--border)">
+      <div style="display:flex;align-items:center;gap:10px;min-width:0">
+        <div class="user-av" style="width:36px;height:36px;font-size:12px;background:linear-gradient(135deg,#2563eb,#60a5fa);flex-shrink:0">
+          ${u.nome.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase()}
+        </div>
+        <div style="min-width:0">
+          <div style="font-size:13px;font-weight:600;color:var(--text-h);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${u.nome}</div>
+          <div style="font-size:12px;color:var(--text-m);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${u.email}</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+        <span class="tag" style="${u.role==='admin' ? 'background:rgba(220,38,38,.12);color:#dc2626' : 'background:rgba(37,99,235,.12);color:#2563eb'}">
+          ${u.role==='admin' ? 'Administrador' : 'Funcionário'}
+        </span>
+        <button class="modal-cl" onclick="removerUsuario(${i})" title="Remover usuário">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+        </button>
+      </div>
+    </div>
+  `).join('');
+}
+
+/* ============================================================
+   LOGIN / LOGOUT
+   ============================================================ */
+function doLogin() {
+  const email = document.getElementById('l-email').value.trim();
+  const senha = document.getElementById('l-senha').value;
+  const u = CREDS[currentRole];
+  let nome = null;
+
+  if (email.toLowerCase() === u.email.toLowerCase() && senha === u.senha) {
+    nome = currentRole === 'admin' ? u.nome : u.nomes[Math.floor(Math.random()*u.nomes.length)];
+  } else {
+    const reg = registeredUsers.find(r =>
+      r.role === currentRole &&
+      r.email.toLowerCase() === email.toLowerCase() &&
+      r.senha === senha
+    );
+    if (reg) nome = reg.nome;
+  }
+
+  if (nome) {
+    currentUser = { nome, role: currentRole };
+    setupApp();
+    goTo('page-app');
+  } else {
+    const e = document.getElementById('err-box');
+    e.classList.remove('show');
+    setTimeout(() => e.classList.add('show'), 10);
+  }
+}
+
+function doLogout() {
+  currentUser = null;
+  document.getElementById('l-email').value = '';
+  document.getElementById('l-senha').value = '';
+  document.getElementById('err-box').classList.remove('show');
+  resetSenhaVisivel();
+  closeModal('ov-msg');
+  goTo('page-login');
+}
+
+/* ============================================================
+   SETUP APP
+   ============================================================ */
+function setupApp() {
+  const ini = currentUser.nome.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase();
+  document.getElementById('u-av').textContent = ini;
+  document.getElementById('u-nm').textContent = currentUser.nome;
+  updateMsgBadge();
+
+  if (currentUser.role === 'admin') {
+    document.getElementById('u-role').textContent = 'Admin';
+    document.getElementById('u-role').style.cssText = 'background:rgba(220,38,38,.12);color:#dc2626';
+    document.getElementById('tb-nav').innerHTML = `
+      <button class="nav-b on" id="nav-dash" onclick="navApp('vw-adm-dash','nav-dash')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>Painel</button>
+      <button class="nav-b" id="nav-hist" onclick="navApp('vw-adm-hist','nav-hist');renderHist()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Histórico</button>
+      <button class="nav-b" id="nav-users" onclick="navApp('vw-adm-users','nav-users');renderUsersList()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>Cadastrar Usuário</button>
+      <button class="nav-b" id="nav-estoque" onclick="navApp('vw-adm-estoque','nav-estoque');renderEstoque()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 12v7a2 2 0 01-2 2H6a2 2 0 01-2-2v-7"/><path d="M22 7H2v5h20V7z"/><path d="M12 22V7"/></svg>Estoque</button>`;
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('on'));
+    document.getElementById('vw-adm-dash').classList.add('on');
+    renderAdmStats();
+    renderAdm();
+  } else {
+    document.getElementById('u-role').textContent = 'Func';
+    document.getElementById('u-role').style.cssText = 'background:rgba(37,99,235,.12);color:#2563eb';
+    document.getElementById('tb-nav').innerHTML = `
+      <button class="nav-b on" id="nav-dash" onclick="navApp('vw-func-dash','nav-dash')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>Painel</button>
+      <button class="nav-b" id="nav-nova" onclick="navApp('vw-func-nova','nav-nova')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Nova Solicitação</button>
+      <button class="nav-b" id="nav-hist" onclick="navApp('vw-func-hist','nav-hist');renderFuncHist()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Histórico</button>`;
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('on'));
+    document.getElementById('vw-func-dash').classList.add('on');
+    renderFuncStats();
+    renderFunc();
+    initForm();
+  }
+}
+
+function navApp(vid, nid) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('on'));
+  document.getElementById(vid).classList.add('on');
+  document.querySelectorAll('.nav-b').forEach(b => b.classList.remove('on'));
+  document.getElementById(nid)?.classList.add('on');
+}
+
+/* ============================================================
+   STATS
+   ============================================================ */
+function renderFuncStats() {
+  const total = sols.length, pend = count('pendente'), aprov = count('aprovado'), recus = count('recusado');
+  document.getElementById('func-stats').innerHTML = statCards([
+    {n:total, l:'Total', c:'#2563eb', bg:'rgba(37,99,235,.10)'},
+    {n:pend,  l:'Pendentes', c:'#d97706', bg:'rgba(217,119,6,.10)'},
+    {n:aprov, l:'Aprovados', c:'#16a34a', bg:'rgba(22,163,74,.10)'},
+    {n:recus, l:'Recusados', c:'#dc2626', bg:'rgba(220,38,38,.10)'}
+  ]);
+}
+function renderAdmStats() {
+  const total = sols.length, pend = count('pendente'), aprov = count('aprovado'), recus = count('recusado');
+  document.getElementById('adm-stats').innerHTML = statCards([
+    {n:total, l:'Total', c:'#2563eb', bg:'rgba(37,99,235,.10)'},
+    {n:pend,  l:'Pendentes', c:'#d97706', bg:'rgba(217,119,6,.10)'},
+    {n:aprov, l:'Aprovados', c:'#16a34a', bg:'rgba(22,163,74,.10)'},
+    {n:recus, l:'Recusados', c:'#dc2626', bg:'rgba(220,38,38,.10)'}
+  ]);
+}
+function count(st) { return sols.filter(s=>s.status===st).length; }
+function statCards(items) {
+  const icons = {
+    '#2563eb':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/></svg>',
+    '#d97706':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
+    '#16a34a':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>',
+    '#dc2626':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>'
+  };
+  return items.map(i=>`
+    <div class="stat-c">
+      <div class="stat-ico" style="background:${i.bg};color:${i.c}">${icons[i.c]||''}</div>
+      <div><div class="stat-v" style="color:${i.c}">${i.n}</div><div class="stat-l">${i.l}</div></div>
+    </div>`).join('');
+}
+
+/* ============================================================
+   RENDER REQUESTS
+   ============================================================ */
+function renderFunc() {
+  const list = sols.filter(s => funcFilter==='todos' || s.status===funcFilter);
+  document.getElementById('func-list').innerHTML = list.length ? list.map(s=>rcHtml(s,false)).join('') : emptyHtml();
+}
+function renderAdm() {
+  const q = (document.getElementById('adm-search')?.value||'').toLowerCase();
+  const list = sols.filter(s=>{
+    if (admFilter!=='todos' && s.status!==admFilter) return false;
+    if (q && !s.func.toLowerCase().includes(q) && !s.setor.toLowerCase().includes(q)) return false;
+    return true;
+  });
+  document.getElementById('adm-list').innerHTML = list.length ? list.map(s=>rcHtml(s,true)).join('') : emptyHtml();
+}
+
+function rcHtml(s, isAdm) {
+  const admBtns = isAdm && s.status==='pendente' ? `
+    <button class="act-btn act-recus" onclick="openRecuse('${s.id}')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>Recusar</button>
+    <button class="act-btn act-aprov" onclick="approve('${s.id}')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Aprovar</button>` : '';
+  return `<div class="rc st-${s.status}">
+    <div class="rc-top">
+      <span class="rc-id">${s.id}</span>
+      <div class="rc-badges">
+        <span class="badge b-${s.status}">${statusLbl(s.status)}</span>
+        <span class="badge b-${s.prio}">${prioLbl(s.prio)}</span>
+        <span class="badge b-cat">${CAT[s.cat]||s.cat}</span>
+      </div>
+    </div>
+    <div class="rc-meta">
+      ${isAdm?`<span>👤 ${s.func}</span>`:''}
+      <span>🏫 ${s.setor}</span><span>📅 ${fmtDate(s.data)}</span><span>🕐 ${s.criado}</span>
+    </div>
+    <div class="rc-tags">${s.itens.map(i=>{
+      const prod = findProduto(i.nome);
+      const dotCls = prod ? getStockStatus(prod.qtd).cls : 'dot-gray';
+      return `<span class="tag tag-stock"><span class="stock-dot ${dotCls}"></span>${i.nome} · ${i.qtd} ${i.un}</span>`;
+    }).join('')}</div>
+    ${s.motivo?`<div style="margin-top:8px;padding:9px 13px;background:var(--danger-lt);border-radius:8px;border-left:3px solid var(--danger);font-size:12px;color:var(--danger)">⚠️ ${s.motivo}</div>`:''}
+    <div class="rc-acts">
+      <button class="act-btn act-detail" onclick="openDet('${s.id}',${isAdm})">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Detalhes</button>
+      ${admBtns}
+    </div>
+  </div>`;
+}
+
+function emptyHtml() {
+  return `<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><h3>Nenhuma solicitação</h3><p>Tente ajustar os filtros</p></div>`;
+}
+
+/* ============================================================
+   FILTROS
+   ============================================================ */
+function filterFunc(st, el) {
+  funcFilter = st;
+  document.querySelectorAll('#vw-func-dash .fb').forEach(b=>b.classList.remove('on'));
+  el.classList.add('on'); renderFunc();
+}
+function filterAdm(st, el) {
+  admFilter = st;
+  document.querySelectorAll('#vw-adm-dash .fb').forEach(b=>b.classList.remove('on'));
+  el.classList.add('on'); renderAdm();
+}
+
+/* ============================================================
+   AÇÕES ADM
+   ============================================================ */
+function approve(id) {
+  const s = sols.find(x=>x.id===id);
+  if (!s) return;
+  s.status = 'aprovado';
+
+  let totalItens = 0;
+  const resumo = s.itens.map(i => {
+    totalItens += i.qtd;
+    const prod = findProduto(i.nome);
+    if (prod) prod.qtd = Math.max(0, prod.qtd - i.qtd);
+    const atual = prod ? prod.qtd : null;
+    const st = prod ? getStockStatus(atual) : { cls:'dot-gray', label:'Sem controle' };
+    return { nome:i.nome, aprov:i.qtd, un:i.un, atual, st };
+  });
+  renderEstoque();
+
+  hist.unshift({tipo:'aprovado',msg:`${id} aprovada — ${s.func}`,det:`${s.itens.length} item(ns) de ${CAT[s.cat]}`,data:'Agora'});
+  renderAdmStats(); renderAdm();
+
+  document.getElementById('aprov-title').textContent = `✅ ${id} Aprovada`;
+  document.getElementById('aprov-body').innerHTML = `
+    <p style="font-size:13px;color:var(--text-m);margin-bottom:1rem">
+      <b style="color:var(--text-h)">${totalItens}</b> objeto(s), em <b style="color:var(--text-h)">${resumo.length}</b> item(ns), foram aprovados para <b style="color:var(--text-h)">${s.func}</b>. Veja como ficou o estoque:
+    </p>
+    <table class="modal-tbl">
+      <thead><tr><th>Material</th><th style="text-align:right">Aprovado</th><th style="text-align:right">Estoque Atual</th></tr></thead>
+      <tbody>${resumo.map(r=>`
+        <tr>
+          <td><span class="stock-dot ${r.st.cls}"></span>${r.nome}</td>
+          <td style="text-align:right">${r.aprov} ${r.un}</td>
+          <td style="text-align:right;color:var(--text-m)">${r.atual===null ? '—' : `${r.atual} ${r.un} · ${r.st.label}`}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
+  openModal('ov-aprov');
+
+  toast(`Solicitação ${id} aprovada. Estoque atualizado.`, 'ok');
+}
+
+function openRecuse(id) {
+  pendRecId = id;
+  document.getElementById('motivo').value = '';
+  openModal('ov-rec');
+}
+
+function confirmRecuse() {
+  const m = document.getElementById('motivo').value.trim();
+  if (!m) { toast('Informe o motivo da recusa.','warn'); return; }
+  const s = sols.find(x=>x.id===pendRecId);
+  if (!s) return;
+  s.status = 'recusado';
+  s.motivo = m;
+  hist.unshift({tipo:'recusado',msg:`${pendRecId} recusada — ${s.func}`,det:m.slice(0,60),data:'Agora'});
+  closeModal('ov-rec');
+  renderAdmStats(); renderAdm();
+  toast(`Solicitação ${pendRecId} recusada.`, 'err');
+  pendRecId = null;
+}
+
+/* ============================================================
+   MODAL DETALHES
+   ============================================================ */
+function openDet(id, isAdm) {
+  const s = sols.find(x=>x.id===id);
+  if (!s) return;
+  document.getElementById('det-title').textContent = `Solicitação ${s.id}`;
+  document.getElementById('det-body').innerHTML = `
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:1.2rem">
+      <span class="badge b-${s.status}">${statusLbl(s.status)}</span>
+      <span class="badge b-${s.prio}">${prioLbl(s.prio)}</span>
+      <span class="badge b-cat">${CAT[s.cat]||s.cat}</span>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.2rem">
+      <div><div class="ms-lbl">Funcionário</div><div class="ms-val">${s.func}</div></div>
+      <div><div class="ms-lbl">Setor</div><div class="ms-val">${s.setor}</div></div>
+      <div><div class="ms-lbl">Data necessária</div><div class="ms-val">${fmtDate(s.data)}</div></div>
+      <div><div class="ms-lbl">Data da solicitação</div><div class="ms-val">${s.criado}</div></div>
+    </div>
+    <div style="margin-bottom:1.2rem">
+      <div class="ms-lbl">Justificativa</div>
+      <div class="ms-val" style="background:var(--bg-deep);padding:11px;border-radius:8px;font-size:13px;line-height:1.65;margin-top:5px;border:1px solid var(--border)">${s.just}</div>
+    </div>
+    <div>
+      <div class="ms-lbl">Itens Solicitados</div>
+      <table class="modal-tbl" style="margin-top:8px">
+        <thead><tr><th>Material</th><th style="text-align:right">Qtd</th><th style="text-align:right">Unidade</th></tr></thead>
+        <tbody>${s.itens.map(i=>{
+          const prod = findProduto(i.nome);
+          const dotCls = prod ? getStockStatus(prod.qtd).cls : 'dot-gray';
+          return `<tr><td><span class="stock-dot ${dotCls}"></span>${i.nome}</td><td style="text-align:right">${i.qtd}</td><td style="text-align:right;color:var(--text-m)">${i.un}</td></tr>`;
+        }).join('')}</tbody>
+      </table>
+    </div>
+    ${s.motivo?`<div style="margin-top:1rem;padding:11px 13px;background:var(--danger-lt);border-radius:9px;border-left:3px solid var(--danger)"><div style="font-size:11px;font-weight:700;color:var(--danger);text-transform:uppercase;margin-bottom:3px">Motivo da Recusa</div><div style="font-size:13px;color:var(--danger)">${s.motivo}</div></div>`:''}`;
+
+  const foot = document.getElementById('det-foot');
+  if (isAdm && s.status==='pendente') {
+    foot.innerHTML=`
+      <button class="btn-sec" onclick="closeModal('ov-det')">Fechar</button>
+      <button class="act-btn act-recus" style="padding:10px 18px;font-size:13px" onclick="closeModal('ov-det');openRecuse('${s.id}')">Recusar</button>
+      <button class="act-btn act-aprov" style="padding:10px 18px;font-size:13px" onclick="closeModal('ov-det');approve('${s.id}')">Aprovar</button>`;
+  } else {
+    foot.innerHTML = `<button class="btn-sub" onclick="closeModal('ov-det')">Fechar</button>`;
+  }
+  openModal('ov-det');
+}
+
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+/* ============================================================
+   HISTÓRICO
+   ============================================================ */
+function renderHist() { _tl(hist, document.getElementById('adm-hist-tl')); }
+function renderFuncHist() {
+  const mine = hist.filter(h=>h.msg.includes(currentUser.nome));
+  _tl(mine, document.getElementById('func-hist-tl'));
+}
+function _tl(items, el) {
+  const ic = {
+    aprovado:{bg:'var(--success-lt)',c:'var(--success)',svg:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>`},
+    recusado:{bg:'var(--danger-lt)',c:'var(--danger)',svg:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`},
+    nova:{bg:'var(--accent-lt)',c:'var(--accent)',svg:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>`}
+  };
+  if (!items.length) { el.innerHTML=`<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><h3>Sem atividades</h3><p>Nenhuma atividade registrada.</p></div>`; return; }
+  el.innerHTML = items.map(h=>{
+    const i = ic[h.tipo]||ic.nova;
+    return `<div class="tl-item"><div class="tl-dot" style="background:${i.bg};color:${i.c}">${i.svg}</div><div><div class="tl-title">${h.msg}</div><div class="tl-sub">${h.det}</div><div class="tl-date">🕐 ${h.data}</div></div></div>`;
+  }).join('');
+}
+
+/* ============================================================
+   FORMULÁRIO NOVA SOLICITAÇÃO
+   ============================================================ */
+function initForm() { itemCnt=0; document.getElementById('items-c').innerHTML=''; addItem(); }
+
+function setPrio(p) {
+  selPriority = p;
+  const map = {baixa:'low',media:'med',alta:'hig'};
+  ['baixa','media','alta'].forEach(x => {
+    const el = document.getElementById(`p-${x}`);
+    el.className = 'prio-opt' + (x===p?` prio-${map[x]}`:'');
+  });
+}
+
+function addItem() {
+  itemCnt++;
+  const d = document.createElement('div');
+  d.className='item-row'; d.id=`ir-${itemCnt}`;
+  const disabled = itemCnt===1?'disabled style="opacity:.35;cursor:not-allowed"':'';
+  d.innerHTML=`
+    <input class="fi2" type="text" placeholder="Nome do material..." style="padding:10px 12px">
+    <input class="fi2" type="number" min="1" placeholder="Qtd" style="padding:10px 12px">
+    <input class="fi2" type="text" placeholder="Unid." style="padding:10px 12px">
+    <button class="btn-rm" onclick="rmItem(${itemCnt})" ${disabled}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M9 6V4h6v2"/></svg>
+    </button>`;
+  document.getElementById('items-c').appendChild(d);
+}
+
+function rmItem(id) {
+  const el = document.getElementById(`ir-${id}`);
+  if (el) el.remove();
+}
+
+function clearForm() {
+  document.getElementById('f-cat').value='';
+  document.getElementById('f-setor').value='';
+  document.getElementById('f-just').value='';
+  document.getElementById('f-data').value='';
+  selPriority='';
+  ['baixa','media','alta'].forEach(x=>document.getElementById(`p-${x}`).className='prio-opt');
+  initForm();
+}
+
+function submitReq() {
+  const cat=document.getElementById('f-cat').value;
+  const setor=document.getElementById('f-setor').value.trim();
+  const just=document.getElementById('f-just').value.trim();
+  const data=document.getElementById('f-data').value;
+  if (!cat||!setor||!just||!selPriority||!data){ toast('Preencha todos os campos.','warn'); return; }
+  const rows=document.querySelectorAll('#items-c .item-row');
+  const itens=[];
+  rows.forEach(r=>{
+    const inp=r.querySelectorAll('input');
+    const n=inp[0].value.trim(),q=parseInt(inp[1].value),u=inp[2].value.trim();
+    if(n&&q>0) itens.push({nome:n,qtd:q,un:u||'Unid.'});
+  });
+  if(!itens.length){ toast('Adicione ao menos um item.','warn'); return; }
+  const id='SOL-'+String(sols.length+1).padStart(3,'0');
+  const hoje=new Date();
+  const criado=`${String(hoje.getDate()).padStart(2,'0')}/${String(hoje.getMonth()+1).padStart(2,'0')}/${hoje.getFullYear()}`;
+  sols.unshift({id,func:currentUser.nome,setor,cat,just,prio:selPriority,data,criado,status:'pendente',itens,motivo:''});
+  hist.unshift({tipo:'nova',msg:`${id} criada — ${currentUser.nome}`,det:`${itens.length} item(ns) de ${CAT[cat]}`,data:'Agora'});
+  toast(`Solicitação ${id} enviada com sucesso!`,'ok');
+  clearForm();
+  renderFuncStats(); renderFunc();
+  navApp('vw-func-dash','nav-dash');
+}
+
+/* ============================================================
+   TOAST
+   ============================================================ */
+function toast(msg, type='ok') {
+  const el=document.createElement('div');
+  el.className=`toast ${type}`;
+  const ic={ok:'✅',err:'❌',warn:'⚠️'};
+  el.innerHTML=`<span>${ic[type]||'ℹ️'}</span><span>${msg}</span>`;
+  document.getElementById('toast-wrap').appendChild(el);
+  setTimeout(()=>{ el.style.transition='opacity .3s,transform .3s'; el.style.opacity='0'; el.style.transform='translateX(12px)'; setTimeout(()=>el.remove(),320); },3500);
+}
+
+/* ============================================================
+   UTILS
+   ============================================================ */
+function capitalize(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
+function statusLbl(s){ return {pendente:'⏳ Pendente',aprovado:'✅ Aprovado',recusado:'❌ Recusado'}[s]||s; }
+function prioLbl(p){ return {baixa:'🟢 Baixa',media:'🟡 Média',alta:'🔴 Alta'}[p]||p; }
+function fmtDate(d){ if(!d)return'-'; const[y,m,dy]=d.split('-'); return `${dy}/${m}/${y}`; }
+
+/* fechar modal clicando fora */
+['ov-det','ov-rec'].forEach(id=>{
+  document.getElementById(id).addEventListener('click',function(e){ if(e.target===this) closeModal(id); });
+});
+</script>
+</body>
+</html>
