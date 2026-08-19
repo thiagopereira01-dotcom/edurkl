@@ -3992,28 +3992,6 @@ aplicarFontScaleSalva();
 habilitarClicaveisPorTeclado();
 </script>
 
-<!-- Widget oficial VLibras (Governo Federal) — tradução para Libras, sempre ativo -->
-<div vw class="enabled" id="vlibras-widget">
-  <div vw-access-button class="active"></div>
-  <div vw-plugin-wrapper>
-    <div class="vw-plugin-top-wrapper"></div>
-  </div>
-</div>
-<script src="https://vlibras.gov.br/app/vlibras-plugin.js"></script>
-<script>
-  (function () {
-    function initVLibras() {
-      if (window.VLibras && !window.__vlibrasIniciado) {
-        try {
-          new window.VLibras.Widget('https://vlibras.gov.br/app');
-          window.__vlibrasIniciado = true;
-        } catch (e) { /* widget indisponível offline */ }
-      }
-    }
-    if (document.readyState === 'complete') initVLibras();
-    else window.addEventListener('load', initVLibras);
-  })();
-</script>
 <div vw class="enabled">
   <div vw-access-button class="active"></div>
   <div vw-plugin-wrapper>
@@ -4024,5 +4002,6 @@ habilitarClicaveisPorTeclado();
 <script>
   new window.VLibras.Widget('https://vlibras.gov.br/app');
 </script>
+
 </body>
 </html>
